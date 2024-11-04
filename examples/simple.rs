@@ -31,7 +31,7 @@ async fn main() -> kube::Result<()> {
     tokio::spawn(mock.run());
 
     let nodes = kube::Api::<corev1::Node>::all(client.clone());
-    let node = nodes.get("node1").await?;
+    let node = nodes.get("node-1").await?;
     println!("{node:?}");
 
     let namespaces = kube::Api::<corev1::Namespace>::all(client.clone());

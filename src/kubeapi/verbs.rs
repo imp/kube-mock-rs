@@ -1,5 +1,3 @@
-use http::Method;
-
 use super::*;
 
 #[derive(Debug)]
@@ -15,14 +13,22 @@ pub enum Verb {
 }
 
 impl Verb {
-    pub fn from_request(request: &Request<Body>) -> Self {
-        match *request.method() {
-            Method::GET => Self::Get,
-            Method::POST => Self::Update,
-            Method::PUT => Self::Create,
-            Method::DELETE => Self::Delete,
-            Method::PATCH => Self::Update,
-            _ => panic!("unsupported method"),
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::Create => "create",
+            Self::Get => "get",
+            Self::List => "list",
+            Self::Watch => "watch",
+            Self::Delete => "delete",
+            Self::DeleteCollection => "delete_collection",
+            Self::Update => "update",
+            Self::Patch => "patch",
         }
+    }
+}
+
+impl fmt::Display for Verb {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        self.as_str().fmt(f)
     }
 }

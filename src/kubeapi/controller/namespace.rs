@@ -1,58 +1,70 @@
-use k8s::NamespaceExt;
+// use k8s::NamespaceExt;
 
 use super::*;
 
-#[derive(Debug, Default)]
-pub struct Namespaces {
-    inventory: BTreeMap<String, corev1::Namespace>,
-}
+pub type Namespaces = ClusterInventory<corev1::Namespace>;
 
-impl Namespaces {
-    pub fn example() -> Self {
-        let inventory = [
-            corev1::Namespace::new("kube-system"),
-            corev1::Namespace::new("kube-public"),
-            corev1::Namespace::new("default"),
-        ]
-        .into_iter()
-        .map(|ns| (ns.name_any(), ns))
-        .collect();
+// #[derive(Debug, Default)]
+// pub struct Namespaces {
+//     inventory: HashMap<String, corev1::Namespace>,
+// }
 
-        Self { inventory }
-    }
+// impl Namespaces {
+//     pub(crate) fn from_inventory(inventory: HashMap<String, corev1::Namespace>) -> Self {
+//         Self { inventory }
+//     }
 
-    pub fn boxed(self) -> Box<dyn Controller> {
-        Box::new(self)
-    }
-}
+//     pub fn boxed(self) -> Box<dyn Controller> {
+//         Box::new(self)
+//     }
+// }
 
-impl Controller for Namespaces {
-    fn type_meta(&self) -> api::TypeMeta {
-        api::TypeMeta::resource::<corev1::Namespace>()
-    }
+// impl Controller for Namespaces {
+//     fn type_meta(&self) -> api::TypeMeta {
+//         api::TypeMeta::resource::<corev1::Namespace>()
+//     }
 
-    fn apply(
-        &mut self,
-        resource: ParsedResource,
-        object: json::Value,
-    ) -> kube::Result<json::Value> {
-        tracing::debug!(?resource, %object);
-        let object = from_json::<corev1::Namespace>(object)?;
-        let key = object.name_any();
-        *self.inventory.entry(key).or_default() = object;
-        Ok(json::Value::Null)
-    }
+//     fn key(&self, resource: &ParsedResource) -> String {
+//         resource.name().unwrap_or_default().to_string()
+//     }
 
-    fn get(&mut self, resource: ParsedResource, data: json::Value) -> kube::Result<json::Value> {
-        assert_eq!(data, json::Value::default());
-        if let Some(name) = resource.name() {
-            object_to_json(&corev1::Namespace::new(name))
-        } else {
-            list_to_json(&[
-                corev1::Namespace::new("default"),
-                corev1::Namespace::new("kube-system"),
-                corev1::Namespace::new("kube-public"),
-            ])
-        }
-    }
-}
+//     fn create(
+//         &mut self,
+//         resource: ParsedResource,
+//         object: json::Value,
+//     ) -> Result<json::Value, metav1::Status> {
+//         tracing::debug!(?resource, %object);
+//         let object = from_json::<corev1::Namespace>(object)?;
+//         let key = object.name_any();
+//         *self.inventory.entry(key).or_default() = object;
+//         Ok(json::Value::Null)
+//     }
+
+//     fn get(
+//         &mut self,
+//         resource: ParsedResource,
+//         data: json::Value,
+//     ) -> Result<json::Value, metav1::Status> {
+//         assert_eq!(data, json::Value::default());
+//         let key = self.key(&resource);
+//         object_to_json(&corev1::Namespace::new(&key))
+
+//         // if let Some(name) = resource.name() {
+//         //     object_to_json(&corev1::Namespace::new(name))
+//         // } else {
+//         //     list_to_json(&[
+//         //         corev1::Namespace::new("default"),
+//         //         corev1::Namespace::new("kube-system"),
+//         //         corev1::Namespace::new("kube-public"),
+//         //     ])
+//         // }
+//     }
+//     fn list(
+//         &mut self,
+//         resource: ParsedResource,
+//         data: serde_json::Value,
+//     ) -> Result<serde_json::Value, metav1::Status> {
+//         tracing::debug!(?resource, %data);
+//         Err(metav1::Status::method_not_allowed())
+//     }
+// }

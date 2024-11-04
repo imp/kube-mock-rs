@@ -1,5 +1,3 @@
-use core::str;
-
 use kube::discovery::ApiGroup;
 
 use super::*;
@@ -43,6 +41,34 @@ impl ParsedResource {
     pub fn plural(&self) -> &str {
         &self.plural
     }
+
+    pub fn _namespace(&self) -> Option<&str> {
+        self.namespace.as_deref()
+    }
+
+    pub fn _api_version(&self) -> &str {
+        &self.api_version
+    }
+
+    pub fn verb(&self, method: &http::Method) -> Option<Verb> {
+        match *method {
+            http::Method::GET => {
+                if self.name().is_some() {
+                    Some(Verb::Get)
+                } else {
+                    Some(Verb::List)
+                }
+            }
+            http::Method::POST => Some(Verb::Create),
+            http::Method::PUT => Some(Verb::Update),
+            http::Method::DELETE => Some(Verb::Delete),
+            http::Method::PATCH => Some(Verb::Patch),
+            // FIXME Following two are placeholders
+            http::Method::TRACE => Some(Verb::Watch),
+            http::Method::OPTIONS => Some(Verb::DeleteCollection),
+            _ => None,
+        }
+    }
 }
 
 impl str::FromStr for ParsedResource {
@@ -67,7 +93,7 @@ fn parse_path(path: &str) -> Result<ParsedResource, Error> {
 fn parse_version(group: &str, path: &str) -> Result<ParsedResource, Error> {
     let mut path = path.split("/");
 
-    let version = path.next().ok_or(Error::WrongVersion)?;
+    let version = path.next().ok_or(Error::BadVersion)?;
     let plural = path.next().ok_or(Error::WrongPath)?;
     let name_or_namespace = path.next();
     let kind = path.next();
@@ -86,8 +112,8 @@ fn parse_version(group: &str, path: &str) -> Result<ParsedResource, Error> {
 pub enum Error {
     #[error("Wrong Prefix")]
     WrongPrefix,
-    #[error("Wrong Version")]
-    WrongVersion,
+    #[error("Bad Version")]
+    BadVersion,
     #[error("Wrong Path")]
     WrongPath,
 }
