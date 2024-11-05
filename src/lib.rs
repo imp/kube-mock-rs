@@ -68,22 +68,20 @@ impl KubeMock {
             let uri = request.uri();
             tracing::debug!(%method, %uri, "MOCK");
 
-            // let result = self
-            //     .kubeapi
-            //     .parse_request(request)
-            //     .await
-            //     .inspect(|(path, verb, _)| tracing::debug!(?verb, ?path, "KUBEAPI PARSE"))
-            //     .and_then(|(path, verb, data)| self.kubeapi.dispatch(path, verb, data))
-            //     .and_then(serialize_to_body)
-            //     .and_then(|body| {
-            //         Response::builder()
-            //             .body(body)
-            //             .map_err(kube::Error::HttpError)
-            //     });
-
-            let result = self.kubeapi.process(request).await;
+            let result = self.handle_request(request).await;
             send_response.reply(result);
         }
+    }
+
+    async fn handle_request(&mut self, request: Request<Body>) -> kube::Result<Response<Body>> {
+        let (parts, body) = request.into_parts();
+        let bytes = body.collect_bytes().await?;
+        let data = if bytes.is_empty() {
+            json::Value::Null
+        } else {
+            json::from_slice(&bytes).map_err(kube::Error::SerdeError)?
+        };
+        self.kubeapi.process_request(parts, data)
     }
 
     pub async fn run(self) -> task::JoinHandle<()> {

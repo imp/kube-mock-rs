@@ -16,6 +16,30 @@ pub trait Controller: fmt::Debug + Send + Sync {
 
     fn key(&self, resource: &ParsedResource) -> String;
 
+    fn create_op(
+        &mut self,
+        object: api::DynamicObject,
+        data: json::Value,
+    ) -> Result<(json::Value, http::StatusCode), metav1::Status>;
+
+    fn delete_op(
+        &mut self,
+        object: api::DynamicObject,
+        data: json::Value,
+    ) -> Result<(json::Value, http::StatusCode), metav1::Status>;
+
+    fn get_op(
+        &mut self,
+        object: api::DynamicObject,
+        data: json::Value,
+    ) -> Result<(json::Value, http::StatusCode), metav1::Status>;
+
+    fn list_op(
+        &mut self,
+        object: api::DynamicObject,
+        data: json::Value,
+    ) -> Result<(json::Value, http::StatusCode), metav1::Status>;
+
     fn handle(
         &mut self,
         resource: ParsedResource,
@@ -55,13 +79,6 @@ pub trait Controller: fmt::Debug + Send + Sync {
     fn on_create(&self, data: json::Value) -> json::Value {
         data
     }
-}
-
-fn from_json<K>(object: json::Value) -> Result<K, metav1::Status>
-where
-    K: kube::Resource + serde::de::DeserializeOwned,
-{
-    json::from_value(object).map_err(metav1::Status::bad_request)
 }
 
 fn object_to_json<K>(object: &K) -> Result<json::Value, metav1::Status>

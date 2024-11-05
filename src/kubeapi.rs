@@ -6,18 +6,20 @@ use super::*;
 
 use controller::Controller;
 // use parser::Error;
+use operations::Operation;
 use parser::ParsedResource;
+use resources::Item;
 use verbs::Verb;
 
 mod controller;
+mod operations;
 mod parser;
 mod resources;
 mod verbs;
 
-// #[derive(Debug)]
+#[derive(Debug)]
 pub struct KubeApi {
-    resources: HashMap<String, api::ApiResource>,
-
+    router: resources::Router,
     controllers: HashMap<api::TypeMeta, Box<dyn Controller>>,
 }
 
@@ -34,7 +36,7 @@ impl KubeApi {
             pods,
         } = builder;
 
-        let resources = resources::api_resources();
+        let router = resources::Router::new();
 
         let namespaces = controller::Namespaces::with_inventory(namespaces).boxed();
         let nodes = controller::Nodes::with_inventory(nodes).boxed();
@@ -46,86 +48,68 @@ impl KubeApi {
             .collect();
 
         Self {
-            resources,
+            router,
             controllers,
         }
     }
 
-    pub async fn process(&mut self, request: Request<Body>) -> kube::Result<Response<Body>> {
-        let (resource, verb, data) = self.parse_request(request).await?;
-        tracing::debug!(?verb, ?resource, "KUBEAPI PARSE");
-        let response = match self.dispatch(resource, verb, data) {
+    pub fn process_request(
+        &mut self,
+        parts: http::request::Parts,
+        data: json::Value,
+    ) -> kube::Result<Response<Body>> {
+        let Some(operation) = self.router.operation(parts) else {
+            let body = Body::from(b"404 page not found".to_vec());
+            return response(body, 404);
+        };
+
+        let operation = match operation {
+            Ok(operation) => operation,
+            Err(status) => {
+                let code = status.code;
+                let body = serialize_to_body(status)?;
+                return response(body, code);
+            }
+        };
+
+        tracing::debug!(?operation);
+
+        match self.process_operation(operation, data) {
             Ok((data, code)) => {
                 let body = serialize_to_body(data)?;
-                Response::builder()
-                    .status(code)
-                    .body(body)
-                    .map_err(kube::Error::HttpError)?
+                let code = code.as_u16() as i32;
+                response(body, code)
             }
             Err(status) => {
                 let code = status.code;
                 let body = serialize_to_body(status)?;
-                Response::builder()
-                    .optionally_status(code)
-                    .body(body)
-                    .map_err(kube::Error::HttpError)?
+                response(body, code)
             }
-        };
-        Ok(response)
+        }
     }
 
-    pub fn dispatch(
+    pub fn process_operation(
         &mut self,
-        resource: ParsedResource,
-        verb: Verb,
+        operation: Operation,
         data: json::Value,
     ) -> Result<(json::Value, http::StatusCode), metav1::Status> {
-        let meta = self
-            .get_type_meta(&resource)
+        let meta = operation
+            .type_meta()
+            .inspect(|meta| tracing::debug!(?meta))
             .ok_or_else(metav1::Status::no_such_resource)?;
 
-        tracing::debug!(?meta);
-        self.controllers
-            .get_mut(&meta)
+        let controller = self
+            .controllers
+            .get_mut(meta)
             .inspect(|controller| tracing::debug!(?controller))
-            .ok_or_else(metav1::Status::no_such_resource)?
-            .handle(resource, verb, data)
-            .map(|data| (data, http::StatusCode::OK))
-    }
+            .ok_or_else(metav1::Status::no_such_resource)?;
 
-    pub async fn parse_request(
-        &self,
-        request: Request<Body>,
-    ) -> kube::Result<(ParsedResource, Verb, json::Value)> {
-        let method = request.method();
-        let uri = request.uri();
-        let parsed_path = uri.path().parse::<ParsedResource>()?;
-        let verb = parsed_path.verb(method).unwrap(); // metav1::Status::method_not_allowed
-        let body = request.into_body();
-        let bytes = body.collect_bytes().await?;
-        let value = if bytes.is_empty() {
-            json::Value::default()
-        } else {
-            json::from_slice(&bytes).map_err(kube::Error::SerdeError)?
-        };
-        Ok((parsed_path, verb, value))
-    }
-
-    fn get_type_meta(&self, path: &ParsedResource) -> Option<api::TypeMeta> {
-        self.resources
-            .get(path.plural())
-            .map(|resource| api::TypeMeta {
-                api_version: resource.api_version.clone(),
-                kind: resource.kind.clone(),
-            })
-    }
-}
-
-impl fmt::Debug for KubeApi {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.debug_struct("KubeApi")
-            .field("controllers", &"<BTreeMap<String, Controller>>")
-            .finish()
+        match operation {
+            Operation::Create(object) => controller.create_op(object, data),
+            Operation::Delete(object) => controller.delete_op(object, data),
+            Operation::Get(object) => controller.get_op(object, data),
+            Operation::List(object) => controller.list_op(object, data),
+        }
     }
 }
 
@@ -133,4 +117,18 @@ fn serialize_to_body<T: serde::Serialize>(data: T) -> kube::Result<Body> {
     json::to_vec(&data)
         .map(Body::from)
         .map_err(kube::Error::SerdeError)
+}
+
+fn from_json<K>(object: json::Value) -> Result<K, metav1::Status>
+where
+    K: kube::Resource + serde::de::DeserializeOwned,
+{
+    json::from_value(object).map_err(metav1::Status::bad_request)
+}
+
+fn response(body: Body, code: impl Into<Option<i32>>) -> kube::Result<Response<Body>> {
+    Response::builder()
+        .optionally_status(code.into())
+        .body(body)
+        .map_err(kube::Error::HttpError)
 }

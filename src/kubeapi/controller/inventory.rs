@@ -16,8 +16,8 @@ where
         + Send
         + Sync
         + serde::Serialize
+        + for<'de> serde::Deserialize<'de>
         + 'static,
-    for<'de> K: serde::Deserialize<'de>,
 {
     pub(crate) fn with_inventory(inventory: HashMap<String, K>) -> Self {
         Self { inventory }
@@ -34,8 +34,8 @@ where
         + fmt::Debug
         + Send
         + Sync
-        + serde::Serialize,
-    for<'de> K: serde::Deserialize<'de>,
+        + serde::Serialize
+        + for<'de> serde::Deserialize<'de>,
 {
     fn type_meta(&self) -> api::TypeMeta {
         api::TypeMeta::resource::<K>()
@@ -98,6 +98,38 @@ where
         tracing::debug!(?resource, %data);
         Err(metav1::Status::method_not_allowed())
     }
+
+    fn create_op(
+        &mut self,
+        object: api::DynamicObject,
+        data: serde_json::Value,
+    ) -> Result<(serde_json::Value, http::StatusCode), metav1::Status> {
+        todo!("create")
+    }
+
+    fn delete_op(
+        &mut self,
+        object: api::DynamicObject,
+        data: serde_json::Value,
+    ) -> Result<(serde_json::Value, http::StatusCode), metav1::Status> {
+        todo!("delete")
+    }
+
+    fn get_op(
+        &mut self,
+        object: api::DynamicObject,
+        data: serde_json::Value,
+    ) -> Result<(serde_json::Value, http::StatusCode), metav1::Status> {
+        todo!("get")
+    }
+
+    fn list_op(
+        &mut self,
+        object: api::DynamicObject,
+        data: serde_json::Value,
+    ) -> Result<(serde_json::Value, http::StatusCode), metav1::Status> {
+        todo!("list")
+    }
 }
 
 #[derive(Debug, Default)]
@@ -112,8 +144,8 @@ where
         + Send
         + Sync
         + serde::Serialize
+        + for<'de> serde::Deserialize<'de>
         + 'static,
-    for<'de> K: serde::Deserialize<'de>,
 {
     pub(crate) fn with_inventory(inventory: HashMap<String, K>) -> Self {
         Self { inventory }
@@ -130,8 +162,8 @@ where
         + fmt::Debug
         + Send
         + Sync
-        + serde::Serialize,
-    for<'de> K: serde::Deserialize<'de>,
+        + serde::Serialize
+        + for<'de> serde::Deserialize<'de>,
 {
     fn type_meta(&self) -> api::TypeMeta {
         api::TypeMeta::resource::<K>()
@@ -196,5 +228,37 @@ where
     ) -> Result<serde_json::Value, metav1::Status> {
         tracing::debug!(?resource, %data);
         Err(metav1::Status::method_not_allowed())
+    }
+
+    fn create_op(
+        &mut self,
+        object: api::DynamicObject,
+        data: serde_json::Value,
+    ) -> Result<(serde_json::Value, http::StatusCode), metav1::Status> {
+        todo!("create")
+    }
+
+    fn delete_op(
+        &mut self,
+        object: api::DynamicObject,
+        data: serde_json::Value,
+    ) -> Result<(serde_json::Value, http::StatusCode), metav1::Status> {
+        todo!("delete")
+    }
+
+    fn get_op(
+        &mut self,
+        object: api::DynamicObject,
+        data: serde_json::Value,
+    ) -> Result<(serde_json::Value, http::StatusCode), metav1::Status> {
+        todo!("get")
+    }
+
+    fn list_op(
+        &mut self,
+        object: api::DynamicObject,
+        data: serde_json::Value,
+    ) -> Result<(serde_json::Value, http::StatusCode), metav1::Status> {
+        todo!("list")
     }
 }
