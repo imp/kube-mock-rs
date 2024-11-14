@@ -14,71 +14,37 @@ mod pod;
 pub trait Controller: fmt::Debug + Send + Sync {
     fn type_meta(&self) -> api::TypeMeta;
 
-    fn key(&self, resource: &ParsedResource) -> String;
-
-    fn create_op(
-        &mut self,
-        object: api::DynamicObject,
-        data: json::Value,
-    ) -> Result<(json::Value, http::StatusCode), metav1::Status>;
-
-    fn delete_op(
-        &mut self,
-        object: api::DynamicObject,
-        data: json::Value,
-    ) -> Result<(json::Value, http::StatusCode), metav1::Status>;
-
-    fn get_op(
-        &mut self,
-        object: api::DynamicObject,
-        data: json::Value,
-    ) -> Result<(json::Value, http::StatusCode), metav1::Status>;
-
-    fn list_op(
-        &mut self,
-        object: api::DynamicObject,
-        data: json::Value,
-    ) -> Result<(json::Value, http::StatusCode), metav1::Status>;
-
-    fn handle(
-        &mut self,
-        resource: ParsedResource,
-        verb: Verb,
-        data: json::Value,
-    ) -> Result<json::Value, metav1::Status> {
-        match verb {
-            Verb::Create => self.create(resource, data),
-            Verb::Get => self.get(resource, data),
-            Verb::List => self.list(resource, data),
-            Verb::Watch => todo!(),
-            Verb::Delete => todo!(),
-            Verb::DeleteCollection => todo!(),
-            Verb::Update => todo!(),
-            Verb::Patch => todo!(),
-        }
-    }
+    fn key_op(&self, object: &api::DynamicObject) -> String;
 
     fn create(
         &mut self,
-        resource: ParsedResource,
+        object: api::DynamicObject,
         data: json::Value,
-    ) -> Result<json::Value, metav1::Status>;
+    ) -> Result<(json::Value, http::StatusCode), metav1::Status>;
+
+    fn delete(
+        &mut self,
+        object: api::DynamicObject,
+        data: json::Value,
+    ) -> Result<(json::Value, http::StatusCode), metav1::Status>;
 
     fn get(
         &mut self,
-        resource: ParsedResource,
+        object: api::DynamicObject,
         data: json::Value,
-    ) -> Result<json::Value, metav1::Status>;
+    ) -> Result<(json::Value, http::StatusCode), metav1::Status>;
 
     fn list(
         &mut self,
-        resource: ParsedResource,
+        object: api::DynamicObject,
         data: json::Value,
-    ) -> Result<json::Value, metav1::Status>;
+    ) -> Result<(json::Value, http::StatusCode), metav1::Status>;
 
-    fn on_create(&self, data: json::Value) -> json::Value {
-        data
-    }
+    fn update(
+        &mut self,
+        object: api::DynamicObject,
+        data: json::Value,
+    ) -> Result<(json::Value, http::StatusCode), metav1::Status>;
 }
 
 fn object_to_json<K>(object: &K) -> Result<json::Value, metav1::Status>
@@ -95,7 +61,7 @@ where
     json::to_value(objects).map_err(metav1::Status::bad_request)
 }
 
-fn refvec_to_json<K>(objects: Vec<&K>) -> Result<json::Value, metav1::Status>
+fn _refvec_to_json<K>(objects: Vec<&K>) -> Result<json::Value, metav1::Status>
 where
     K: kube::Resource + serde::Serialize,
 {

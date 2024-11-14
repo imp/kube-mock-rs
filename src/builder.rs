@@ -2,6 +2,7 @@ use api::ResourceExt;
 use k8s::NamespaceExt;
 use k8s::NodeExt;
 use k8s::PodExt;
+use k8s::ResourceBuilder;
 
 use super::*;
 
@@ -35,9 +36,12 @@ impl KubeMockBuilder {
         Self { nodes, ..self }
     }
 
-    pub fn pod(mut self, name: impl ToString) -> Self {
-        let pod = corev1::Pod::new(name);
-        self.pods.insert(pod.name_any(), pod);
+    pub fn pod(mut self, name: impl ToString, namespace: impl ToString) -> Self {
+        let name = name.to_string();
+        let namespace = namespace.to_string();
+        let pod = corev1::Pod::new(&name).namespace(&namespace);
+        let key = format!("{namespace}/{name}");
+        self.pods.insert(key, pod);
         self
     }
 }

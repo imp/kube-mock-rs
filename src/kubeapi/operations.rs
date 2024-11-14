@@ -6,6 +6,7 @@ pub enum Operation {
     Delete(api::DynamicObject),
     Get(api::DynamicObject),
     List(api::DynamicObject),
+    Update(api::DynamicObject),
 }
 
 impl Operation {
@@ -17,7 +18,8 @@ impl Operation {
         match *method {
             http::Method::GET if item.is_object() => Ok(Self::Get(object)),
             http::Method::GET if item.is_kind() => Ok(Self::List(object)),
-            http::Method::PUT if item.is_kind() => Ok(Self::Create(object)),
+            http::Method::POST if item.is_kind() => Ok(Self::Create(object)),
+            http::Method::PUT if item.is_object() => Ok(Self::Update(object)),
             http::Method::DELETE if item.is_object() => Ok(Self::Delete(object)),
             _ => Err(metav1::Status::method_not_allowed()),
             //
@@ -30,10 +32,11 @@ impl Operation {
 
     pub fn dynamic_object(&self) -> &api::DynamicObject {
         match self {
-            Self::Create(dynamic_object) => dynamic_object,
-            Self::Delete(dynamic_object) => dynamic_object,
-            Self::Get(dynamic_object) => dynamic_object,
-            Self::List(dynamic_object) => dynamic_object,
+            Self::Create(object) => object,
+            Self::Delete(object) => object,
+            Self::Get(object) => object,
+            Self::List(object) => object,
+            Self::Update(object) => object,
         }
     }
 

@@ -5,15 +5,12 @@ use kube::ResourceExt;
 use super::*;
 
 use controller::Controller;
-// use parser::Error;
 use operations::Operation;
-use parser::ParsedResource;
 use resources::Item;
 use verbs::Verb;
 
 mod controller;
 mod operations;
-mod parser;
 mod resources;
 mod verbs;
 
@@ -25,7 +22,7 @@ pub struct KubeApi {
 
 impl KubeApi {
     pub fn new() -> Self {
-        let builder = KubeMockBuilder::new().nodes(2);
+        let builder = KubeMockBuilder::new().nodes(2).pod("aa", "default");
         Self::from_builder(builder)
     }
 
@@ -105,10 +102,11 @@ impl KubeApi {
             .ok_or_else(metav1::Status::no_such_resource)?;
 
         match operation {
-            Operation::Create(object) => controller.create_op(object, data),
-            Operation::Delete(object) => controller.delete_op(object, data),
-            Operation::Get(object) => controller.get_op(object, data),
-            Operation::List(object) => controller.list_op(object, data),
+            Operation::Create(object) => controller.create(object, data),
+            Operation::Delete(object) => controller.delete(object, data),
+            Operation::Get(object) => controller.get(object, data),
+            Operation::List(object) => controller.list(object, data),
+            Operation::Update(object) => controller.update(object, data),
         }
     }
 }

@@ -32,25 +32,29 @@ async fn main() -> kube::Result<()> {
 
     let nodes = kube::Api::<corev1::Node>::all(client.clone());
     let node = nodes.get("node-1").await?;
-    println!("{node:?}");
+    println!("\nNODE: {node:?}");
 
     let namespaces = kube::Api::<corev1::Namespace>::all(client.clone());
     let ns = namespaces.get("default").await?;
-    println!("{ns:?}");
+    println!("\nNAMESPACE: {ns:?}");
+
+    let pods = kube::Api::<corev1::Pod>::namespaced(client.clone(), "default");
+    let pod = pods.get("aa").await?;
+    println!("\nNAMESPACED POD: {pod:?}");
 
     let pods = kube::Api::<corev1::Pod>::all(client.clone());
     let pod = pods.get("aa").await?;
-    println!("{pod:?}");
+    println!("\nGLOBAL POD: {pod:?}");
 
-    let deployments = kube::Api::<appsv1::Deployment>::namespaced(client.clone(), "bravo");
-    let deployment = deployments.get("engine").await?;
-    println!("{deployment:?}");
+    // let deployments = kube::Api::<appsv1::Deployment>::namespaced(client.clone(), "bravo");
+    // let deployment = deployments.get("engine").await?;
+    // println!("{deployment:?}");
 
     let pp = kube::api::PostParams::default();
     let xxx = corev1::Namespace::new("xxx");
     let ns = namespaces.create(&pp, &xxx).await?;
 
-    print!("XXX: {xxx:#?}");
+    println!("XXX: {xxx:#?}");
     println!("NS : {ns:#?}");
 
     Ok(())
