@@ -6,18 +6,22 @@ use super::*;
 
 use controller::Controller;
 use operations::Operation;
-use resources::Item;
+use resources::Resources;
+use router::Item;
+use router::Key;
 use verbs::Verb;
 
 mod controller;
 mod operations;
 mod resources;
+mod router;
 mod verbs;
 
 #[derive(Debug)]
 pub struct KubeApi {
-    router: resources::Router,
+    router: router::Router,
     controllers: HashMap<api::TypeMeta, Box<dyn Controller>>,
+    resources: Resources,
 }
 
 impl KubeApi {
@@ -33,7 +37,7 @@ impl KubeApi {
             pods,
         } = builder;
 
-        let router = resources::Router::new();
+        let router = router::Router::new();
 
         let namespaces = controller::Namespaces::with_inventory(namespaces).boxed();
         let nodes = controller::Nodes::with_inventory(nodes).boxed();
@@ -44,9 +48,12 @@ impl KubeApi {
             .map(|controller| (controller.type_meta(), controller))
             .collect();
 
+        let resources = Resources::default();
+
         Self {
             router,
             controllers,
+            resources,
         }
     }
 

@@ -14,7 +14,7 @@ mod pod;
 pub trait Controller: fmt::Debug + Send + Sync {
     fn type_meta(&self) -> api::TypeMeta;
 
-    fn key_op(&self, object: &api::DynamicObject) -> String;
+    fn key(&self, object: &api::DynamicObject) -> String;
 
     fn create(
         &mut self,

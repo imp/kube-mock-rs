@@ -42,7 +42,7 @@ where
         api::TypeMeta::resource::<K>()
     }
 
-    fn key_op(&self, object: &api::DynamicObject) -> String {
+    fn key(&self, object: &api::DynamicObject) -> String {
         object.name_any()
     }
 
@@ -61,7 +61,7 @@ where
         data: serde_json::Value,
     ) -> Result<(serde_json::Value, http::StatusCode), metav1::Status> {
         tracing::debug!(?object, %data, "create");
-        let key = self.key_op(&object);
+        let key = self.key(&object);
         let k = from_json::<K>(data)?;
         match self.inventory.entry(key) {
             Entry::Occupied(entry) => Err(metav1::Status::already_exists::<K>(entry.key())),
@@ -89,7 +89,7 @@ where
     ) -> Result<(serde_json::Value, http::StatusCode), metav1::Status> {
         tracing::debug!(?object, %data, "get");
         assert_eq!(data, json::Value::default());
-        let key = self.key_op(&object);
+        let key = self.key(&object);
         self.inventory
             .get(&key)
             .ok_or_else(|| metav1::Status::not_found::<K>(key))
@@ -179,7 +179,7 @@ where
         api::TypeMeta::resource::<K>()
     }
 
-    fn key_op(&self, object: &api::DynamicObject) -> String {
+    fn key(&self, object: &api::DynamicObject) -> String {
         let name = object.name_any();
         if let Some(namespace) = object.namespace() {
             format!("{namespace}/{name}")
@@ -259,7 +259,7 @@ where
     ) -> Result<(serde_json::Value, http::StatusCode), metav1::Status> {
         tracing::debug!(?object, %data, "get");
         assert_eq!(data, json::Value::default());
-        let key = self.key_op(&object);
+        let key = self.key(&object);
 
         self.inventory
             .get(&key)
